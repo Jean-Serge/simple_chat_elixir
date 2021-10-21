@@ -4,9 +4,9 @@ defmodule SimpleChatWeb.RoomChannel do
   alias SimpleChat.Message
 
   @impl true
-  def join("room:" <> _room, payload, socket) do
-    if authorized?(payload) do
-      send(self(), :joined)
+  def join("room:" <> topic_name = room_name, _payload, socket) do
+    if authorized?(socket, topic_name) do
+      send(self(), {:joined, room_name})
       {:ok, socket}
     else
       {:error, %{reason: "unauthorized"}}
@@ -14,8 +14,8 @@ defmodule SimpleChatWeb.RoomChannel do
   end
 
   @impl Phoenix.Channel
-  def handle_info(:joined, socket) do
-    messages = Message.last()
+  def handle_info({:joined, room_name}, socket) do
+    messages = Message.last_in(room_name)
 
     messages
     |> Enum.reverse()
@@ -25,16 +25,20 @@ defmodule SimpleChatWeb.RoomChannel do
   end
 
   @impl Phoenix.Channel
-  @spec handle_in(<<_::56>>, map, Phoenix.Socket.t()) :: {:noreply, Phoenix.Socket.t()}
   def handle_in("new_msg", %{"body" => body}, socket) do
-    Message.create(%{content: body})
+    Message.create(%{
+      content: body,
+      author_name: socket.assigns[:current_user],
+      room_name: socket.topic
+    })
 
     broadcast!(socket, "new_msg", %{body: body})
+
     {:noreply, socket}
   end
 
   # Add authorization logic here as required.
-  defp authorized?(_payload) do
-    true
+  defp authorized?(%{assigns: %{current_user: current_user}}, room_name) do
+    current_user in String.split(room_name, ":", parts: 2)
   end
 end

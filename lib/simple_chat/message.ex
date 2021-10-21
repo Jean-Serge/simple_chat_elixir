@@ -11,18 +11,21 @@ defmodule SimpleChat.Message do
     field :author_name, :string
     field :content, :string
 
+    field :room_name, :string
+
     timestamps()
   end
 
   def changeset(message, attrs) do
     message
-    |> cast(attrs, ~w(content)a)
-    |> validate_required(~w(content)a)
+    |> cast(attrs, ~w(content room_name author_name)a)
+    |> validate_required(~w(content room_name author_name)a)
   end
 
-  def last(count \\ 10) do
+  def last_in(room_name, count \\ 10) do
     Repo.all(
       from m in Message,
+        where: m.room_name == ^room_name,
         order_by: [desc: m.inserted_at],
         limit: ^count
     )
