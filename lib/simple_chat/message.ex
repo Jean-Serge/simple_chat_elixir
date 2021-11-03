@@ -7,6 +7,7 @@ defmodule SimpleChat.Message do
   alias __MODULE__
   import Ecto.Query, only: [from: 2]
 
+  @derive {Jason.Encoder, only: ~w(author_name content room_name inserted_at)a}
   schema "messages" do
     field :author_name, :string
     field :content, :string

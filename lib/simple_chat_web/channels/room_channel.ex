@@ -19,20 +19,21 @@ defmodule SimpleChatWeb.RoomChannel do
 
     messages
     |> Enum.reverse()
-    |> Enum.each(&push(socket, "new_msg", %{body: &1.content}))
+    |> Enum.each(&push(socket, "new_msg", &1))
 
     {:noreply, socket}
   end
 
   @impl Phoenix.Channel
-  def handle_in("new_msg", %{"body" => body}, socket) do
-    Message.create(%{
-      content: body,
-      author_name: socket.assigns[:current_user],
-      room_name: socket.topic
-    })
+  def handle_in("new_msg", %{"content" => content}, socket) do
+    message =
+      Message.create(%{
+        content: content,
+        author_name: socket.assigns[:current_user],
+        room_name: socket.topic
+      })
 
-    broadcast!(socket, "new_msg", %{body: body})
+    broadcast!(socket, "new_msg", message)
 
     {:noreply, socket}
   end
